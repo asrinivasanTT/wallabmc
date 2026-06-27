@@ -6,7 +6,12 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyr
-      revision: v4.4.0
+      # Pinned to the Zephyr Commit to a commit from main where
+      # PR #113068 (Sylvio Alves, Espressif) was merged in
+      # This fixes issues with undefined Kconfig symbols that was
+      # causing build issues
+      # PR: https://github.com/zephyrproject-rtos/zephyr/pull/113068
+      revision: 4b1e696ed0576a690f5f257b376f80fa18adbb65
       import: true
 
   self:
