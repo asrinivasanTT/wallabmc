@@ -6,7 +6,13 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyr
-      revision: v4.4.0
+      # Pinned to the Zephyr PR #113068 head (Sylvio Alves, Espressif)
+      # which fixes undefined Kconfig references for ESP32, including the
+      # SLEEP_DCM_VSET_VAL symbol when only CONFIG_POWEROFF is enabled.
+      # It bumps hal_espressif to 563219d8db677b70e92f1493e4e46b018bf41120.
+      # None of this has been released yet.
+      # PR: https://github.com/zephyrproject-rtos/zephyr/pull/113068
+      revision: e44572be46bb37995a0fce84b7453281723a09d5
       import: true
 
   self:
