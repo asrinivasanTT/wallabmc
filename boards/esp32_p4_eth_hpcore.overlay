@@ -1,0 +1,88 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/*
+ * WallaBMC application overlay for the Waveshare ESP32-P4-ETH.
+ *
+ * The board DTS delegates to the in-tree ESP32-P4 Function EV Board.
+ * This overlay adjusts the console to UART0, wires the host serial
+ * bridge to UART1 (TX=GPIO2, RX=GPIO3) and brings out host power and
+ * reset controls.
+ *
+ * Host-control pin placeholders below are chosen to avoid Ethernet,
+ * JTAG and UART1 pins; validate against the target wiring harness.
+ */
+
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/dt-bindings/pinctrl/esp-pinctrl-common.h>
+#include <zephyr/dt-bindings/pinctrl/esp32p4-pinctrl.h>
+#include <zephyr/dt-bindings/pinctrl/esp32p4-gpio-sigmap.h>
+
+/ {
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+	};
+
+	aliases {
+		host-console-uart = &uart1;
+		jtagtck = &jtagtck;
+		jtagtms = &jtagtms;
+		jtagtdi = &jtagtdi;
+		jtagtdo = &jtagtdo;
+		power-gpio-1 = &host_pwrbtn;
+		reset-gpio-1 = &host_sysreset;
+	};
+
+	host_power {
+		compatible = "gpio-leds";
+
+		/*
+		 * Open-drain active-low signals: the BMC only sinks current and
+		 * lets the host motherboard provide the pull-up.
+		 */
+		host_pwrbtn: host_pwrbtn {
+			gpios = <&gpio0 4 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN | GPIO_PULL_UP)>;
+		};
+		host_sysreset: host_sysreset {
+			gpios = <&gpio0 5 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN | GPIO_PULL_UP)>;
+		};
+	};
+
+	jtag {
+		compatible = "gpio-leds";
+
+		jtagtck: jtag_tck {
+			gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
+		};
+		jtagtms: jtag_tms {
+			gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+		};
+		jtagtdo: jtag_tdo {
+			gpios = <&gpio0 16 GPIO_PULL_UP>;
+		};
+		jtagtdi: jtag_tdi {
+			gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+&pinctrl {
+	uart1_default: uart1_default {
+		group1 {
+			pinmux = <UART1_TX_GPIO2>;
+			output-high;
+			drive-push-pull;
+		};
+		group2 {
+			pinmux = <UART1_RX_GPIO3>;
+			bias-pull-up;
+		};
+	};
+};
+
+&uart1 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-names = "default";
+};

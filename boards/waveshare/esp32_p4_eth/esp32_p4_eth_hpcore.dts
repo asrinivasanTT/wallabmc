@@ -1,0 +1,16 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/*
+ * Waveshare ESP32-P4-ETH derivative board.
+ *
+ * The hardware is pin-compatible with the Espressif ESP32-P4 Function
+ * EV Board reference design (same RMII/MDIO pinout, IP101 PHY at MDIO
+ * addr 1, 16 MB flash, USB-Serial/JTAG console). Delegate the DTS and
+ * pinctrl to the in-tree EV board files so bug fixes and updates to
+ * the reference design propagate automatically.
+ *
+ * For board-specific additions (host-control UART, power/reset GPIOs,
+ * status LED alias) see boards/esp32_p4_eth_hpcore.overlay.
+ */
+
+#include "../../../../zephyr/boards/espressif/esp32p4_function_ev_board/esp32p4_function_ev_board_hpcore.dts"

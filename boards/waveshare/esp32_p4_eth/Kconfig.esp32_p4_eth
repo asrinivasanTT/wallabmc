@@ -1,0 +1,7 @@
+# Waveshare ESP32-P4-ETH board configuration
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_ESP32_P4_ETH
+	bool
+	select SOC_ESP32P4_REV_1_3
+	select SOC_ESP32P4_HPCORE if BOARD_ESP32_P4_ETH_ESP32P4_HPCORE

@@ -1,0 +1,15 @@
+identifier: esp32_p4_eth/esp32p4/hpcore
+name: Waveshare ESP32-P4-ETH HP Core
+vendor: waveshare
+type: mcu
+arch: riscv
+toolchain:
+  - zephyr
+supported:
+  - counter
+  - entropy
+  - gpio
+  - hwinfo
+  - ethernet
+  - uart
+  - watchdog
