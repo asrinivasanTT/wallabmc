@@ -28,6 +28,7 @@ WallaBMC currently supports the following hardware platforms:
 | **SiFive HiFive Premier P550 MCU** | hifive_premier_p550_mcu | RISC-V based platform |
 | **STM32 Nucleo F767ZI** | nucleo_f767zi | ARM Cortex-M7 development board (standalone, no host CPU) |
 | **Seeed Studio XIAO ESP32-C6** | xiao_esp32c6/esp32c6/hpcore | RISC-V, Wi-Fi 6, on a 21×17.5 mm board with USB-C; BMC console over USB Serial/JTAG (see [below](#seeed-xiao-esp32-c6)) |
+| **Waveshare ESP32-P4-ETH** | esp32_p4_eth/esp32p4/hpcore | RISC-V, Ethernet, on a board with USB-C console and 2×20 pin header; no on-board Wi-Fi (see [below](#waveshare-esp32-p4-eth)) |
 | **qemu** | qemu_cortex_m3 | see [run_qemu_ci.py](scripts/run_qemu_ci.py) |
 
 ### Screenshot
@@ -114,6 +115,90 @@ power on              # 200 ms press on GPIO1 (if BMC believes host is off)
 power off             # 200 ms press on GPIO1 (if BMC believes host is on)
 power force-off       # 6 s press on GPIO1
 power force-restart   # 1 s low pulse on GPIO2 (SYSRESET#)
+reset                 # alias for power force-restart
+```
+
+### Waveshare ESP32-P4-ETH
+
+The Waveshare ESP32-P4-ETH is a RISC-V board with wired Ethernet
+(100 Mbps, IP101 PHY), USB-C for power and BMC console, and no
+on-board Wi-Fi. The BMC console runs on UART0 via the on-board
+USB-UART bridge (CP2102). A second UART (UART1 on GPIO2/GPIO3) is
+available for the host serial bridge.
+
+#### Pinout
+
+A 2×20 pin header provides access to the ESP32-P4 GPIOs. The
+WallaBMC port uses the following pins:
+
+| Signal | GPIO | Direction | Notes |
+| --- | --- | --- | --- |
+| BMC console TX | GPIO37 (UART0 TX) | out | USB-UART bridge (CP2102) |
+| BMC console RX | GPIO38 (UART0 RX) | in | USB-UART bridge (CP2102) |
+| Host serial TX | GPIO2 (UART1 TX) | out | Connect to host UART RX |
+| Host serial RX | GPIO3 (UART1 RX) | in | Connect to host UART TX |
+| Host power button | GPIO4 | out (open-drain) | Active-low, 200 ms pulse on `power on` / `power off` |
+| Host system reset | GPIO5 | out (open-drain) | Active-low, 1 s pulse on `reset` / `power force-restart` |
+| JTAG TCK | GPIO18 | out | Remote-bitbang clock (TCP 7777) |
+| JTAG TMS | GPIO17 | out | Remote-bitbang mode select |
+| JTAG TDO | GPIO16 | in (pull-up) | Remote-bitbang data out |
+| JTAG TDI | GPIO15 | out | Remote-bitbang data in |
+
+> **Voltage warning.** ESP32-P4 GPIOs are **not** 5 V tolerant. The
+> host power and reset pins are driven open-drain, so they only sink —
+> the host's internal pull-up sets the un-asserted level. If the host
+> holds those lines above 3.3 V when un-asserted, add a small N-MOSFET
+> (gate = ESP32 GPIO, drain = host pin, source = GND) between them.
+> The UART1 RX line (GPIO3) sees the host's TX voltage directly; if the
+> host UART runs above 3.3 V, level-shift it.
+
+#### Build and flash
+
+The ESP32-P4 uses Espressif's built-in Simple Boot rather than
+MCUboot, so the build skips ``--sysbuild``. Connect the board via
+USB-C to your build host — the same cable provides power, flashes
+over USB Serial/JTAG, and carries the BMC console:
+
+```
+cd zephyr
+west build -b esp32_p4_eth/esp32p4/hpcore ../wallabmc --pristine \
+    -- -DCONFIG_DEFAULT_ADMIN_PASSWORD='"admin"'
+west flash
+```
+
+On boot, the BMC picks up a DHCPv4 lease on the Ethernet interface
+and logs the assigned IP address on the BMC console (115200 8N1 via
+USB-C). Browse to ``http://<that-ip>/`` for the web UI.
+
+Alternatively, set a static IP from the BMC shell:
+
+```
+config bmc ipv4_address 192.168.1.100
+config bmc ipv4_subnet_mask 255.255.255.0
+config bmc ipv4_gateway 192.168.1.1
+config bmc dhcpv4 disable
+```
+
+#### Remote JTAG
+
+OpenOCD can drive the JTAG pins over TCP port 7777 using the
+remote-bitbang interface. This is useful for debugging the host
+CPU's boot process or programming flash:
+
+```
+# openocd.cfg
+source [find interface/remote_bitbang.cfg]
+remote_bitbang_port 7777
+remote_bitbang_host bmc-ip-address
+```
+
+#### Host control from the shell
+
+```
+power on              # 200 ms press on GPIO4
+power off             # 200 ms press on GPIO4
+power force-off       # 6 s press on GPIO4
+power force-restart   # 1 s low pulse on GPIO5
 reset                 # alias for power force-restart
 ```
 
